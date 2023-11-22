@@ -39,3 +39,6 @@ parallele/.DS_Store
 
 # VS Code ignore
 *.vscode
+
+# Data file
+*.dat
