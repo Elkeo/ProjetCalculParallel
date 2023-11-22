@@ -1,1 +1,1 @@
-# ProjetCalculParallel
+# Projet de Calcul Parallèle
