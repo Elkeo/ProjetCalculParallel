@@ -36,3 +36,6 @@ parallele/.DS_Store
 
 # Image files
 *.gif
+
+# VS Code ignore
+*.vscode
