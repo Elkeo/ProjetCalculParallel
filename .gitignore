@@ -15,6 +15,7 @@
 *.so
 *.dylib
 *.dll
+*.dSYM
 
 # Fortran module files
 *.mod
@@ -32,3 +33,6 @@
 *.app
 parallele/.DS_Store
 .DS_Store
+
+# Image files
+*.gif
