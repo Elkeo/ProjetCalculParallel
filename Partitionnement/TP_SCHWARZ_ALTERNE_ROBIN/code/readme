@@ -1,0 +1,4 @@
+# compilation
+gfortran mod_physical_parameter.f90 mod_fonction.f90 read_input.f90 mod_bicgstab.f90 main.f90
+
+# Les endroits du code à modifier/compléter sont repérés par le mot clef TODO

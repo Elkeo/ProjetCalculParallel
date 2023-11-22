@@ -1,0 +1,4 @@
+0.5   !valeur de alpha
+0.5  !valeur de beta
+
+# BC: alpha*du/dn + beta*u
