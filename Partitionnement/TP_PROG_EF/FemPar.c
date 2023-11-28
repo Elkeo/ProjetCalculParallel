@@ -62,7 +62,7 @@ int* Common, ** Neighbours;
 int ProcNo, ProcID, Nodes, Elements, IntNodes, IBNodes;
 float* Buf;
 int PROCNO;
-int taille = 10;
+int taille = 1;
 char* myFolder;
 
 /* The following function calculates the inner product of two vectors distributed in a prescribed manner. */

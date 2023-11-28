@@ -42,3 +42,8 @@ parallele/.DS_Store
 
 # Data file
 *.dat
+*.log
+*.aux
+Partitionnement/TP_PROG_EF/plot/plot.pdf
+*.gz
+Partitionnement/TP_PROG_EF/Fem
