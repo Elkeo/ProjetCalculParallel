@@ -28,13 +28,16 @@
 				xlabel = {Nombre de processeurs},
 				ylabel = {Speed-up},
 				title={Courbes de speed-up sur un ordinateur personnel},
-				legend style={at={(0,1)},anchor=north west}
+				legend style={at={(0,1)},anchor=north west},
+				ymin = -2.5
 				]
 				
 				\addplot[color=Blue, mark=+] table [col sep=space, x index=0, y index = 2] {../metis/time.dat};
-				\addplot[color=Red, mark=+] table [col sep=space, x index=0, y index = 2] {../scotch/time.dat};
+				\addplot[color=Red, mark=o] table [col sep=space, x index=0, y index = 2] {../scotch/time.dat};
 				
-				\legend{Metis, Scotch};
+				\addplot[color=darkgray, dotted, mark=none] table [col sep=space, x index=0, y index = 0] {../metis/time.dat};
+				
+				\legend{Metis, Scotch, Speed-up idéal};
 			\end{axis}
 		\end{tikzpicture}
 				\begin{tikzpicture}
@@ -50,13 +53,14 @@
 				xlabel = {Nombre de processeurs},
 				ylabel = {Efficacité},
 				title={Courbes d'efficacité sur un ordinateur personnel},
-				legend style={at={(0,1)},anchor=north west}
+				legend style={at={(0,1)},anchor=north west},
+				ymin = -0.3
 				]
 				
 				\addplot[color=Blue, mark=+] table [col sep=space, x index=0, y index = 3] {../metis/time.dat};
-				\addplot[color=Red, mark=+] table [col sep=space, x index=0, y index = 3] {../scotch/time.dat};
-				
-				\legend{Metis, Scotch};
+				\addplot[color=Red, mark=o] table [col sep=space, x index=0, y index = 3] {../scotch/time.dat};
+				\addplot[domain=1:8, color=darkgray, dotted, mark=none] {1};
+				\legend{Metis, Scotch, Efficacité idéale};
 			\end{axis}
 		\end{tikzpicture}
 \end{document}
