@@ -13,5 +13,5 @@ def calculateSU_EF(filename, n):
       tab[3, :] = tab[2, :]/tab[0, :]
       np.savetxt(filename, np.transpose(tab))
 
-calculateSU_EF("metis/time.dat", 8)
-calculateSU_EF("scotch/time.dat", 8)
+calculateSU_EF("metis/time.dat", 24)
+calculateSU_EF("scotch/time.dat", 24)
