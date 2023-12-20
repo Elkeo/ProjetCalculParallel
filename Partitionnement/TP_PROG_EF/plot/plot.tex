@@ -59,7 +59,7 @@
 				
 				\addplot[color=Blue, mark=+] table [col sep=space, x index=0, y index = 3] {../metis/time.dat};
 				\addplot[color=Red, mark=o] table [col sep=space, x index=0, y index = 3] {../scotch/time.dat};
-				\addplot[domain=1:8, color=darkgray, dotted, mark=none] {1};
+				\addplot[domain=1:24, color=darkgray, dotted, mark=none] {1};
 				\legend{Metis, Scotch, Efficacité idéale};
 			\end{axis}
 		\end{tikzpicture}
