@@ -7,8 +7,9 @@ using namespace std::chrono;
 using namespace std;
 
 /* Déclaration des fonctions locales */
-void calculateSolutionStep(valarray<double>& U, double t, const procData& proc, const SpaceTimeDomain& dom);
+void calculateSolutionStep(valarray<double>& U, double t, procData& proc, const SpaceTimeDomain& dom, int maxIterSchwarz = 10000, double tolSchwarz = 1e-8);
 void charge(int me, int n, int np, int& iBeg, int& iEnd);
+void communicationStencil(const valarray<double>& U, procData& proc, const SpaceTimeDomain& dom);
 
 /*
       FONCTION MAIN
@@ -29,6 +30,7 @@ int main(int argc, char* argv[])
    MPI_Comm_rank(MPI_COMM_WORLD, &proc.me);
    MPI_Comm_size(MPI_COMM_WORLD, &proc.nbProc);
 
+   /* Remplissage des informations sur le processeur */
    charge(proc.me, dom.Ny, proc.nbProc, proc.iBeg, proc.iEnd);
 
    // On étend le domaine de calcul en bas si on n'est pas le premier processeur
@@ -40,6 +42,11 @@ int main(int argc, char* argv[])
 
    proc.neighborsToMe[0] = (proc.me == proc.nbProc - 1) ? MPI_PROC_NULL : proc.me + 1;
    proc.neighborsToMe[1] = (proc.me == 0) ? MPI_PROC_NULL : proc.me - 1;
+
+   proc.stencilLower.resize(3 * dom.Nx);
+   proc.stencilUpper.resize(3 * dom.Nx);
+   proc.stencilLower = 0.0;
+   proc.stencilUpper = 0.0;
 
    /* Déclaration des variables */
    valarray<double> U(1.0, dom.Nx * proc.nbElem_y);
@@ -71,6 +78,8 @@ int main(int argc, char* argv[])
       saveSolution(U, timeIteration, proc, dom);
       saveErrorFile(U, timeIteration, proc, dom);
 
+
+      /* Post-processing */
       if (proc.me == 0)
       {
          std::string solutionFilePath = "solution" + std::to_string(dom.testCase) + "/solutionFile_" + std::to_string(timeIteration) + ".dat";
@@ -90,8 +99,6 @@ int main(int argc, char* argv[])
       cout << "Temps de calcul total : " << elapsedHumanTime << endl;
       createGnuplotScriptAndShowPlot(dom, timeIteration);
    }
-
-
    return 0;
 }
 
@@ -115,9 +122,37 @@ void charge(int me, int n, int np, int& iBeg, int& iEnd)
    }
 }
 
-void calculateSolutionStep(valarray<double>& U, double t, const procData& proc, const SpaceTimeDomain& dom)
+void calculateSolutionStep(valarray<double>& U, double t, procData& proc, const SpaceTimeDomain& dom, int maxIterSchwarz, double tolSchwarz)
 {
-   valarray<double> RHS = U;
-   calculateRightHandSide(RHS, t, proc, dom);
-   U = conjugateGradient(RHS, proc, dom);
+   int iterSchwarz(0);
+   double error = 1 + tolSchwarz;
+   /* Boucle d'itérations de Schwarz */
+   while (iterSchwarz <= maxIterSchwarz && error > tolSchwarz)
+   {
+      communicationStencil(U, proc, dom);
+      valarray<double> RHS = U;
+      calculateRightHandSide(RHS, t, proc, dom);
+      U = conjugateGradient(RHS, proc, dom);
+      MPI_Barrier(MPI_COMM_WORLD);
+      iterSchwarz++;
+      /* FAIRE UN CHOIX SUR LA CONDITION D'ARRÊT
+      error = ? */
+
+   }
+
 }
+
+void communicationStencil(const valarray<double>& U, procData& proc, const SpaceTimeDomain& dom)
+{
+   // On envoie les recouvrements en bas
+   MPI_Send(&U[0], 3 * dom.Nx, MPI_DOUBLE, proc.neighborsToMe[proc.Lower], proc.tag, MPI_COMM_WORLD);
+
+   // On envoie les recouvrements en haut
+   MPI_Send(&U[((proc.nbElem_y - 3)) * dom.Nx - 1], 3 * dom.Nx, MPI_DOUBLE, proc.neighborsToMe[proc.Upper], proc.tag, MPI_COMM_WORLD);
+
+   // On reçoit les recouvrements du bas
+   MPI_Recv(&proc.stencilLower[0], 3 * dom.Nx, MPI_DOUBLE, proc.neighborsToMe[proc.Lower], proc.tag, MPI_COMM_WORLD, &proc.status);
+
+   // On reçoit les recouvrements du haut
+   MPI_Recv(&proc.stencilUpper[0], 3 * dom.Nx, MPI_DOUBLE, proc.neighborsToMe[proc.Upper], proc.tag, MPI_COMM_WORLD, &proc.status);
+};

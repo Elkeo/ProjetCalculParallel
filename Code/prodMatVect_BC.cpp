@@ -52,49 +52,53 @@ valarray<double> prodMatvect(const valarray<double>& U, const procData proc, con
 }
 
 
-void calculateRightHandSide(valarray<double>& U, const double t, const procData& proc, const SpaceTimeDomain& dom)
+void calculateRightHandSide(valarray<double>& RHS, const double t, procData& proc, const SpaceTimeDomain& dom)
 {
    int I;
    double beta = -dom.D * dom.dt * (1.0 / (dom.dx * dom.dx));
    double gamma = -dom.D * dom.dt * (1.0 / (dom.dy * dom.dy));
    double lambda = 2 * dom.D * dom.b * dom.dt / (dom.a * dom.dy);
    double nu = dom.D * dom.dt / (dom.dy * dom.dy);
-   valarray<double> stencilUnder(3 * dom.Nx, 0.0), stencilOver(3 * dom.Nx, 0.0);
-
-   // On envoie les recouvrements en bas
-   MPI_Send(&U[0], 3 * dom.Nx, MPI_DOUBLE, proc.neighborsToMe[0], proc.tag, MPI_COMM_WORLD);
-
-   // On envoie les recouvrements en haut
-   MPI_Send(&U[((proc.iEnd - 3)) * dom.Nx], 3 * dom.Nx, MPI_DOUBLE, proc.neighborsToMe[1], proc.tag, MPI_COMM_WORLD);
-
-   // On reçoit les recouvrements du bas
-   MPI_Recv(&stencilUnder[0], 3 * dom.Nx, MPI_DOUBLE, proc.neighborsToMe[0], proc.tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
-   // On reçoit les recouvrements du haut
-   MPI_Recv(&stencilOver[0], 3 * dom.Nx, MPI_DOUBLE, proc.neighborsToMe[1], proc.tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
    for (int j = 0; j < proc.nbElem_y; j++)
    {
       for (int i = 0; i < dom.Nx; i++)
       {
          I = i + j * dom.Nx;
-         U[I] += dom.dt * f(i + 1, j + 1, t + dom.dt, dom);
+         RHS[I] += dom.dt * f(i + 1, j + 1, t + dom.dt, dom);
 
          if (j == 0)
          {
-            U[I] -= gamma * g(i + 1, 0, t + dom.dt, dom);
+            if (proc.me == 0)
+            {
+               RHS[I] -= gamma * g(i + 1, 0, t + dom.dt, dom);
+            }
+            else
+            {
+               RHS[I] += nu * (proc.stencilLower[i] - proc.stencilLower[i + 2 * dom.Nx]) + lambda * proc.stencilLower[i + dom.Nx];
+            }
          }
          if (j == proc.nbElem_y - 1)
          {
-            U[I] -= gamma * g(i + 1, proc.nbElem_y + 1, t + dom.dt, dom);
+            if (proc.me == proc.nbProc - 1)
+            {
+               RHS[I] -= gamma * g(i + 1, proc.nbElem_y + 1, t + dom.dt, dom);
+            }
+            else
+            {
+               RHS[I] += nu * (proc.stencilUpper[i + 2 * dom.Nx] - proc.stencilUpper[i]) + lambda * proc.stencilUpper[i + dom.Nx];;
+            }
+         }
+         {
+            RHS[I] -= gamma * g(i + 1, proc.nbElem_y + 1, t + dom.dt, dom);
          }
          if (i == 0)
          {
-            U[I] -= beta * h(0, j + 1, t + dom.dt, dom);
+            RHS[I] -= beta * h(0, j + 1, t + dom.dt, dom);
          }
          if (i == dom.Nx - 1)
          {
-            U[I] -= beta * h(dom.Nx + 1, j + 1, t + dom.dt, dom);
+            RHS[I] -= beta * h(dom.Nx + 1, j + 1, t + dom.dt, dom);
          }
       }
    }

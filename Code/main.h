@@ -14,9 +14,10 @@ using namespace std;
 
 /* Déclaration d'un type contenant les informations sur un processeur */
 struct procData {
-   int me, nbProc, iBeg, iEnd, nbElem_y, tag;
+   int me, nbProc, iBeg, iEnd, nbElem_y, tag, Upper = 1, Lower = 0;
    MPI_Status status;
    valarray<int> neighborsToMe = { MPI_PROC_NULL, MPI_PROC_NULL };
+   valarray<int> stencilLower, stencilUpper;
 };
 
 struct SpaceTimeDomain {
