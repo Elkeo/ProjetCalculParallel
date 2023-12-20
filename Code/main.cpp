@@ -38,6 +38,9 @@ int main(int argc, char* argv[])
    // On calcule le nombre total de noeuds du processeur
    proc.nbElem_y = proc.iEnd - proc.iBeg + 1;
 
+   proc.neighborsToMe[0] = (proc.me == proc.nbProc - 1) ? MPI_PROC_NULL : proc.me + 1;
+   proc.neighborsToMe[1] = (proc.me == 0) ? MPI_PROC_NULL : proc.me - 1;
+
    /* Déclaration des variables */
    valarray<double> U(1.0, dom.Nx * proc.nbElem_y);
    double elapsedHumanTime(0.0), maxElapsedHumanTime(0.0);

@@ -72,6 +72,7 @@ void remplissageVariables(const std::string parametersFilePath, SpaceTimeDomain&
 
 double f(const int i, const int j, const double t, const SpaceTimeDomain& dom)
 {
+   (void)t;
    double x(i * dom.dx), y(j * dom.dy);
    switch (dom.testCase)
    {
@@ -90,6 +91,7 @@ double f(const int i, const int j, const double t, const SpaceTimeDomain& dom)
 
 double g(const int i, const int j, const double t, const SpaceTimeDomain& dom)
 {
+   (void)t;
    double x(i * dom.dx), y(j * dom.dy);
    switch (dom.testCase)
    {
@@ -106,6 +108,7 @@ double g(const int i, const int j, const double t, const SpaceTimeDomain& dom)
 
 double h(const int i, const int j, const double t, const SpaceTimeDomain& dom)
 {
+   (void)t;
    double x(i * dom.dx), y(j * dom.dy);
    switch (dom.testCase)
    {
@@ -165,7 +168,7 @@ void saveSolution(const std::valarray<double> U, const int timeIteration, const 
          solutionFile << i * dom.dx << "\t" << 0.0 << "\t" << g(i, 0, t, dom) << std::endl;
    }
 
-   for (int j = 0; j < dom.Ny; j++)
+   for (int j = 0 + dom.r; j < proc.nbElem_y - dom.r; j++)
    {
       solutionFile << 0.0 << "\t" << (j + 1) * dom.dy << "\t" << h(0, j + 1, t, dom) << std::endl;
       for (int i = 0; i < dom.Nx; i++)

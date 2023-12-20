@@ -55,9 +55,23 @@ valarray<double> prodMatvect(const valarray<double>& U, const procData proc, con
 void calculateRightHandSide(valarray<double>& U, const double t, const procData& proc, const SpaceTimeDomain& dom)
 {
    int I;
-   double alpha = 1 + dom.D * dom.dt * 2 * (1.0 / (dom.dx * dom.dx) + 1.0 / (dom.dy * dom.dy));
    double beta = -dom.D * dom.dt * (1.0 / (dom.dx * dom.dx));
    double gamma = -dom.D * dom.dt * (1.0 / (dom.dy * dom.dy));
+   double lambda = 2 * dom.D * dom.b * dom.dt / (dom.a * dom.dy);
+   double nu = dom.D * dom.dt / (dom.dy * dom.dy);
+   valarray<double> stencilUnder(3 * dom.Nx, 0.0), stencilOver(3 * dom.Nx, 0.0);
+
+   // On envoie les recouvrements en bas
+   MPI_Send(&U[0], 3 * dom.Nx, MPI_DOUBLE, proc.neighborsToMe[0], proc.tag, MPI_COMM_WORLD);
+
+   // On envoie les recouvrements en haut
+   MPI_Send(&U[((proc.iEnd - 3)) * dom.Nx], 3 * dom.Nx, MPI_DOUBLE, proc.neighborsToMe[1], proc.tag, MPI_COMM_WORLD);
+
+   // On reçoit les recouvrements du bas
+   MPI_Recv(&stencilUnder[0], 3 * dom.Nx, MPI_DOUBLE, proc.neighborsToMe[0], proc.tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+   // On reçoit les recouvrements du haut
+   MPI_Recv(&stencilOver[0], 3 * dom.Nx, MPI_DOUBLE, proc.neighborsToMe[1], proc.tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
    for (int j = 0; j < proc.nbElem_y; j++)
    {
