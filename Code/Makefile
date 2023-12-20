@@ -1,5 +1,5 @@
 # Compilateur utilisé
-CC=g++
+CC=mpic++
 
 # Options en mode optimisé - La variable DEBUG est définie comme fausse
 OPTIM_FLAG = -O3 -DNDEBUG -std=c++11
@@ -7,7 +7,7 @@ OPTIM_FLAG = -O3 -DNDEBUG -std=c++11
 DEBUG_FLAG = -g -DDEBUG -std=c++11 -Wall -pedantic -O0 -Wextra
 
 # On choisit comment on compile
-CXX_FLAGS = $(OPTIM_FLAG)
+CXX_FLAGS = $(DEBUG_FLAG)
 
 # Le nom de l'exécutable
 PROG = main
