@@ -4,48 +4,182 @@
 valarray<double> prodMatvect(const valarray<double>& U, const procData proc, const SpaceTimeDomain& dom)
 {
    size_t N = U.size();
-   double alpha = 1 + dom.D * dom.dt * 2 * (1.0 / (dom.dx * dom.dx) + 1.0 / (dom.dy * dom.dy));
-   double beta = -dom.D * dom.dt * (1.0 / (dom.dx * dom.dx));
-   double gamma = -dom.D * dom.dt * (1.0 / (dom.dy * dom.dy));
+   double a = 1 + dom.D * dom.dt * 2 * (1.0 / (dom.dx * dom.dx) + 1.0 / (dom.dy * dom.dy));
+   double b = -dom.D * dom.dt * (1.0 / (dom.dx * dom.dx));
+   double c = -dom.D * dom.dt * (1.0 / (dom.dy * dom.dy));
+   double a_mod = a + dom.D * dom.dt * ( b / (a * dom.dy ));
    valarray<double> F(0.0, N);
-   /*
-
-   La matrice s'écrit :
-   [alpha beta           gamma             ]
-   |beta alpha beta         gamma          |
-   |                                       |
-   |gamma     beta alpha 0       gamma  |
-   |                                       |
-   |           gamma        beta alpha beta|
-   [               gamma         beta alpha]
-
-    */
-
-   for (size_t I = 0; I <= N; I++)
+   
+   
+   if (proc.me == 0) //Produit matrice vecteur pour le domaine du bas
    {
-      // Indices locaux pour se déplacer dans la matrice
-      int i = I % dom.Nx;
-      int j = I / dom.Nx;
 
-      if (j > 0)
+       for (size_t I = 0; I <= N; I++)
       {
-         F[I] += gamma * (U[I - dom.Nx]);
+         // Indices locaux pour se déplacer dans la matrice
+         int i = I % dom.Nx;
+         int j = I / dom.Nx;
+
+         if ( j == 1 ) // Nx premières lignes de la matrice 
+         {
+            if ( i > 0)
+            {
+               F[I] += b * (U[I - 1]);
+            }
+            
+            F[I] += a_mod * U[I] + 2 * c * (U[I + dom.Nx]);
+
+            if (i < dom.Nx - 1)
+            {
+               F[I] += b * (U[I + 1]);
+            }
+
+         } 
+
+         else {
+            
+            if (j > 1)
+            {
+               F[I] += c * (U[I - dom.Nx]);
+            }
+
+            if (i > 0)
+            {
+               F[I] += b * (U[I - 1]);
+            }
+
+            F[I] += a * U[I];
+
+            if (i < dom.Nx - 1)
+            {
+               F[I] += b * (U[I + 1]);
+            }
+            if (j < proc.nbElem_y - 1)
+            {
+               F[I] += c * (U[I + dom.Nx]);
+            }
+         }
+
       }
 
-      if (i > 0)
+
+
+   } else if(proc.me == proc.nbProc-1){ // Produit matrice vecteur pour le domaine du haut
+      
+      for (size_t I = 0; I <= N; I++)
       {
-         F[I] += beta * (U[I - 1]);
+         // Indices locaux pour se déplacer dans la matrice
+         int i = I % dom.Nx;
+         int j = I / dom.Nx;
+         
+         if (j == proc.nbElem_y - 1 ) { //Nx dernières lignes de la matrice
+
+            if ( i > 0)
+            {
+               F[I] += b * (U[I - 1]);
+            }
+            
+            F[I] += a_mod * U[I] + 2 * c * (U[I - dom.Nx]);
+
+            if (i < dom.Nx - 1)
+            {
+               F[I] += b * (U[I + 1]);
+            }
+
+         }
+
+         else {  
+            
+            if (j > 1)
+            {
+               F[I] += c * (U[I - dom.Nx]);
+            }
+
+            if (i > 0)
+            {
+               F[I] += b * (U[I - 1]);
+            }
+
+            F[I] += a * U[I];
+
+            if (i < dom.Nx - 1)
+            {
+               F[I] += b * (U[I + 1]);
+            }
+            if (j < proc.nbElem_y - 1)
+            {
+               F[I] += c * (U[I + dom.Nx]);
+            }
+         }
+
       }
 
-      F[I] += alpha * U[I];
 
-      if (i < dom.Nx - 1)
+
+
+   } else { // Produit matrice vecteur pour un domaine intermédiaire 
+
+      for (size_t I = 0; I <= N; I++)
       {
-         F[I] += beta * (U[I + 1]);
-      }
-      if (j < proc.nbElem_y - 1)
-      {
-         F[I] += gamma * (U[I + dom.Nx]);
+         // Indices locaux pour se déplacer dans la matrice
+         int i = I % dom.Nx;
+         int j = I / dom.Nx;
+
+         if ( j == 1 ) // Nx premières lignes de la matrice 
+         {
+            if ( i > 0)
+            {
+               F[I] += b * (U[I - 1]);
+            }
+            
+            F[I] += a_mod * U[I] + 2 * c * (U[I + dom.Nx]);
+
+            if (i < dom.Nx - 1)
+            {
+               F[I] += b * (U[I + 1]);
+            }
+
+         } 
+         
+         else if (j == proc.nbElem_y - 1 ) { //Nx dernières lignes de la matrice
+
+            if ( i > 0)
+            {
+               F[I] += b * (U[I - 1]);
+            }
+            
+            F[I] += a_mod * U[I] + 2 * c * (U[I - dom.Nx]);
+
+            if (i < dom.Nx - 1)
+            {
+               F[I] += b * (U[I + 1]);
+            }
+
+         }
+
+         else {
+            
+            if (j > 1)
+            {
+               F[I] += c * (U[I - dom.Nx]);
+            }
+
+            if (i > 0)
+            {
+               F[I] += b * (U[I - 1]);
+            }
+
+            F[I] += a * U[I];
+
+            if (i < dom.Nx - 1)
+            {
+               F[I] += b * (U[I + 1]);
+            }
+            if (j < proc.nbElem_y - 1)
+            {
+               F[I] += c * (U[I + dom.Nx]);
+            }
+         }
       }
    }
    return F;
