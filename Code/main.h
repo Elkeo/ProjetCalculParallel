@@ -21,7 +21,7 @@ struct procData {
 
 struct SpaceTimeDomain {
    int Nx, Ny, testCase, nbProc, r;
-   double Lx, Ly, D, dt, tmax, dx, dy, a, b;
+   double Lx, Ly, D, dt, tmax, dx, dy, alpha, beta;
 };
 
 #endif 
