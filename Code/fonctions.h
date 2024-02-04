@@ -16,8 +16,8 @@ double h(const int i, const int j, const double t, const SpaceTimeDomain& dom);
 /* Déclaration de la fonction qui sauvegarde
 la solution dans un fichier au temps t */
 
-void saveSolution(const std::valarray<double> U, const int timeIteration, const procData& proc, const SpaceTimeDomain& dom);
-void saveErrorFile(const std::valarray<double>& U, const int timeIteration, const procData& proc, const SpaceTimeDomain& dom);
+void saveSolution(const std::vector<double> U, const int timeIteration, const procData& proc, const SpaceTimeDomain& dom);
+void saveErrorFile(const std::vector<double>& U, const int timeIteration, const procData& proc, const SpaceTimeDomain& dom);
 
 /* Déclaration de la fonction qui créé un fichier script et qui sort un gif */
 

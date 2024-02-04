@@ -7,7 +7,7 @@ using namespace std::chrono;
 using namespace std;
 
 /* Déclaration des fonctions locales */
-void calculateSolutionStep(valarray<double>& U, double t, const procData& proc, const SpaceTimeDomain& dom);
+void calculateSolutionStep(vector<double>& U, double t, procData& proc, const SpaceTimeDomain& dom);
 void charge(int me, int n, int np, int& iBeg, int& iEnd);
 
 /*
@@ -37,12 +37,14 @@ int main(int argc, char* argv[])
    proc.iEnd = proc.iEnd + dom.r * (proc.me != proc.nbProc - 1);
    // On calcule le nombre total de noeuds du processeur
    proc.nbElem_y = proc.iEnd - proc.iBeg + 1;
-
+   proc.neighborsToMe = { MPI_PROC_NULL, MPI_PROC_NULL };
    proc.neighborsToMe[0] = (proc.me == proc.nbProc - 1) ? MPI_PROC_NULL : proc.me + 1;
    proc.neighborsToMe[1] = (proc.me == 0) ? MPI_PROC_NULL : proc.me - 1;
+   proc.stencilOver = vector<double>(3 * dom.Nx, 0.0);
+   proc.stencilUnder = vector<double>(3 * dom.Nx, 0.0);
 
    /* Déclaration des variables */
-   valarray<double> U(1.0, dom.Nx * proc.nbElem_y);
+   vector<double> U(dom.Nx * proc.nbElem_y, 1.0);
    double elapsedHumanTime(0.0), maxElapsedHumanTime(0.0);
 
    /* Sauvegarde de l'état initial */
@@ -50,7 +52,7 @@ int main(int argc, char* argv[])
    if (proc.me == 0)
    {
       std::string solutionFilePath = "solution" + std::to_string(dom.testCase) + "/solutionFile_" + std::to_string(timeIteration) + ".dat";
-      for (size_t i = 0; i < proc.nbProc; i++)
+      for (int i = 0; i < proc.nbProc; i++)
       {
          std::string solutionFilePathProc = "solution" + std::to_string(dom.testCase) + "/solutionFile_" + std::to_string(timeIteration) + "_" + std::to_string(i) + ".dat";
          system(("cat " + solutionFilePathProc + " >> " + solutionFilePath).c_str());
@@ -74,7 +76,7 @@ int main(int argc, char* argv[])
       if (proc.me == 0)
       {
          std::string solutionFilePath = "solution" + std::to_string(dom.testCase) + "/solutionFile_" + std::to_string(timeIteration) + ".dat";
-         for (size_t i = 0; i < proc.nbProc; i++)
+         for (int i = 0; i < proc.nbProc; i++)
          {
             std::string solutionFilePathProc = "solution" + std::to_string(dom.testCase) + "/solutionFile_" + std::to_string(timeIteration) + "_" + std::to_string(i) + ".dat";
             system(("cat " + solutionFilePathProc + " >> " + solutionFilePath).c_str());
@@ -87,7 +89,7 @@ int main(int argc, char* argv[])
    MPI_Reduce(&elapsedHumanTime, &maxElapsedHumanTime, 1, MPI_INT, MPI_MAX, 0, MPI_COMM_WORLD);
    if (proc.me == 0)
    {
-      cout << "Temps de calcul total : " << elapsedHumanTime << endl;
+      cout << "Temps de calcul total : " << maxElapsedHumanTime << endl;
       createGnuplotScriptAndShowPlot(dom, timeIteration);
    }
 
@@ -115,9 +117,60 @@ void charge(int me, int n, int np, int& iBeg, int& iEnd)
    }
 }
 
-void calculateSolutionStep(valarray<double>& U, double t, const procData& proc, const SpaceTimeDomain& dom)
+void calculateSolutionStep(vector<double>& U, double t, procData& proc, const SpaceTimeDomain& dom)
 {
-   valarray<double> RHS = U;
-   calculateRightHandSide(RHS, t, proc, dom);
-   U = conjugateGradient(RHS, proc, dom);
+   vector<double> U1 = U;
+   vector<double> RHS = U1;
+   vector<double> actualValuesUnder(3 * dom.Nx, 0.0), actualValuesOver(3 * dom.Nx, 0.0);
+   bool convergedUnder(false), convergedOver(false);
+   int k(0), kSchwarz(100);
+   // Début de la boucle de Schwarz
+   while ((convergedUnder == false and convergedOver == false) or k <= kSchwarz) {
+      RHS = U1;
+      // Stockage des valeurs actuelles des recouvrements en bas et en haut
+      for (int i = 0; i < 3 * dom.Nx; i++)
+      {
+         actualValuesUnder.at(i) = U1.at(i + (dom.r - 1) * dom.Nx);
+         actualValuesOver.at(i) = U1.at(i + (proc.iEnd - 3 - (dom.r - 1)) * dom.Nx);
+      }
+
+      if (actualValuesUnder - proc.stencilUnder > dom.epsilon)
+      {
+         // On envoie les recouvrements en bas
+         MPI_Send(&actualValuesUnder[0], 3 * dom.Nx, MPI_DOUBLE, proc.neighborsToMe[0], 0, MPI_COMM_WORLD);
+         // On reçoit les recouvrements du bas
+         MPI_Recv(&proc.stencilUnder[0], 3 * dom.Nx, MPI_DOUBLE, proc.neighborsToMe[0], MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+         if (proc.me == 0)
+         {
+            proc.stencilUnder = actualValuesUnder;
+         }
+         convergedUnder = false;
+      }
+      else
+      {
+         convergedUnder = true;
+      }
+
+      if (actualValuesOver - proc.stencilOver > dom.epsilon)
+      {
+         // On envoie les recouvrements en haut
+         MPI_Send(&actualValuesOver[0], 3 * dom.Nx, MPI_DOUBLE, proc.neighborsToMe[1], 1, MPI_COMM_WORLD);
+         // On reçoit les recouvrements du haut
+         MPI_Recv(&proc.stencilOver[0], 3 * dom.Nx, MPI_DOUBLE, proc.neighborsToMe[1], MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+         if (proc.me == proc.nbProc - 1)
+         {
+            proc.stencilOver = actualValuesOver;
+         }
+         convergedOver = false;
+      }
+      else
+      {
+         convergedOver = true;
+      }
+
+      calculateRightHandSide(RHS, t, proc, dom);
+      U1 = conjugateGradient(RHS, proc, dom);
+      k++;
+   }
+   U = U1;
 }

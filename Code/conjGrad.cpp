@@ -2,12 +2,12 @@
 
 using namespace std;
 
-valarray<double> conjugateGradient(const valarray<double>& RightHandSide, const procData& proc, const SpaceTimeDomain& dom, double epsilon, int kmax)
+vector<double> conjugateGradient(const vector<double>& RightHandSide, const procData& proc, const SpaceTimeDomain& dom, double epsilon, int kmax)
 {
    /* Calcule la solution par la méthode du gradient conjugué, à epsilon près */
 
-   size_t N = RightHandSide.size();
-   valarray<double> x(0.0, N), z(0.0, N), d(0.0, N), r(0.0, N);
+   int N = RightHandSide.size();
+   vector<double> x(N, 0.0), z(N, 0.0), d(N, 0.0), r(N, 0.0);
    double alpha(0.0), beta(0.0), gamma(0.0);
    int k(0);
 
@@ -18,7 +18,7 @@ valarray<double> conjugateGradient(const valarray<double>& RightHandSide, const 
    d = r;
 
    //norme du résidu initial
-   gamma = (r * r).sum();
+   gamma = sum(r * r);
    beta = sqrt(gamma);
 
    while ((beta > epsilon) and (k < kmax))
@@ -26,11 +26,11 @@ valarray<double> conjugateGradient(const valarray<double>& RightHandSide, const 
       z = prodMatvect(d, proc, dom);
 
       // On a supprimé un produit scalaire en trop...
-      alpha = gamma / (z * d).sum();
+      alpha = gamma / sum(z * d);
       x = x + alpha * d;
 
       r = r - alpha * z;
-      beta = (r * r).sum();
+      beta = sum(r * r);
 
       gamma = beta / gamma;
       d = r + gamma * d;
@@ -48,14 +48,12 @@ valarray<double> conjugateGradient(const valarray<double>& RightHandSide, const 
    return x;
 }
 
-
-
-valarray<double> BiCGstab(const valarray<double>& RightHandSide, const procData& proc, const SpaceTimeDomain& dom, double epsilon, int kmax)
+vector<double> BiCGstab(const vector<double>& RightHandSide, const procData& proc, const SpaceTimeDomain& dom, double epsilon, int kmax)
 {
    /*Calcul de la solutiona avec le solveur Bi gradient conjugué stabilisé*/
 
    size_t N = RightHandSide.size();
-   valarray<double> x(0.0, N), r(0.0, N), r0(0.0, N), p(0.0, N), v(0.0, N), s(0.0, N), t(0.0, N);
+   vector<double> x(N, 0.0), r(N, 0.0), r0(N, 0.0), p(N, 0.0), v(N, 0.0), s(N, 0.0), t(N, 0.0);
    double alpha(1.0), beta(0.0), omega(1.0), rho(1.0), rhoPrev(1.0);
    int k(0);
 
@@ -69,25 +67,25 @@ valarray<double> BiCGstab(const valarray<double>& RightHandSide, const procData&
    t = r;
 
    // Norme du résidu initial
-   rho = (r0 * r).sum();
+   rho = sum(r0 * r);
    beta = sqrt(rho);
 
    while ((beta > epsilon) and (k < kmax))
    {
-      rho = (r0 * r).sum();
+      rho = sum(r0 * r);
       beta = (rho / rhoPrev) * (alpha / omega);
       p = r + beta * (p - omega * v);
 
       v = prodMatvect(p, proc, dom);
 
-      
-      alpha = rho / (r0 * v).sum();
+
+      alpha = rho / sum(r0 * v);
 
       s = r - alpha * v;
 
       t = prodMatvect(s, proc, dom);
 
-      omega = (t * s).sum() / (t * t).sum();
+      omega = sum(t * s) / sum(t * t);
 
       // Mise à jour de la solution x, du résidu r
       x = x + alpha * p + omega * s;

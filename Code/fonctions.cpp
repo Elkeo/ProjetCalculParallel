@@ -140,13 +140,12 @@ double exactSolution(const int i, const int j, const SpaceTimeDomain& dom)
    }
 };
 
-void saveSolution(const std::valarray<double> U, const int timeIteration, const procData& proc, const SpaceTimeDomain& dom)
+void saveSolution(const std::vector<double> U, const int timeIteration, const procData& proc, const SpaceTimeDomain& dom)
 {
    /* fonction qui sauvegarde la solution au temps n dans le fichier solutionFile_n.dat */
    double t(timeIteration * dom.dt);
    std::string solutionFilePath = "solution" + std::to_string(dom.testCase) + "/solutionFile_" + std::to_string(timeIteration) + "_" + std::to_string(proc.me) + ".dat";
    std::ofstream solutionFile(solutionFilePath);
-
    if (not solutionFile.is_open())
    {
       printf("Le fichier de solution n'a pas pu être ouvert.");
@@ -154,9 +153,8 @@ void saveSolution(const std::valarray<double> U, const int timeIteration, const 
    }
    if (proc.me == 0)
    {
-      solutionFile << " x, \t y, \t U" << std::endl;
+      solutionFile << "x, \t y, \t U" << std::endl;
    }
-
 
    for (int i = 0; i <= dom.Nx + 1; i++)
    {
@@ -191,7 +189,7 @@ void saveSolution(const std::valarray<double> U, const int timeIteration, const 
    solutionFile.close();
 };
 
-void saveErrorFile(const std::valarray<double>& U, const int timeIteration, const procData& proc, const SpaceTimeDomain& dom)
+void saveErrorFile(const std::vector<double>& U, const int timeIteration, const procData& proc, const SpaceTimeDomain& dom)
 {
    /* fonction qui sauvegarde la solution au temps n dans le fichier solutionFile_n.dat */
 
